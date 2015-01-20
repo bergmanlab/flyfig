@@ -18,22 +18,21 @@ ReadList<-function(file)
 		aList[[i]]<-strsplit(aFile[aSequence[i]], split = "\t")[[1]]
 	}
 	names(aList)<-aFile[seq(1, nVar, 2)]
+	aList$lineWidth<-as.numeric(aList$lineWidth)
+	aList$x<-as.numeric(aList$x)
+	aList$y<-as.numeric(aList$y)
+	aList$starts<-as.numeric(aList$starts)
+	aList$organs<-as.numeric(aList$organs)
+	aList$textX<-as.numeric(aList$textX)
+	aList$textY<-as.numeric(aList$textY)
+	aList$textPos<-as.numeric(aList$textPos)
+	aList$textCex<-as.numeric(aList$textCex)
 	return(aList)
 }
 
 
-
-PlotFly<-function(flyImageData, myNames, myCorrelation, firstColor = "yellow", secondColor = "red",
-		ncolors = 50, textCex = 0.6)
+PlotFly<-function(flyImageData, myNames, myCorrelation, firstColor = "yellow", secondColor = "red", ncolors = 50,textCex, tickStyle=TRUE, maxValue, minValue)
 {
-	flyImageData$lineWidth<-as.numeric(flyImageData$lineWidth)
-	flyImageData$x<-as.numeric(flyImageData$x)
-	flyImageData$y<-as.numeric(flyImageData$y)
-	flyImageData$starts<-as.numeric(flyImageData$starts)
-	flyImageData$organs<-as.numeric(flyImageData$organs)
-	flyImageData$textX<-as.numeric(flyImageData$textX)
-	flyImageData$textY<-as.numeric(flyImageData$textY)
-	flyImageData$textPos<-as.numeric(flyImageData$textPos)
 	ncolors<-as.numeric(ncolors)
 	colorsToPlot<-flyImageData$colors
 	lineColors<-flyImageData$lines
@@ -42,12 +41,28 @@ PlotFly<-function(flyImageData, myNames, myCorrelation, firstColor = "yellow", s
 	{
 		myCorrelation<-as.numeric(myCorrelation)
 	}
-	aStart<-round(min(myCorrelation[aMatch], na.rm = TRUE), 1)
-	anEnd<-round(max(myCorrelation[aMatch], na.rm = TRUE), 1)
-	newCor<-myCorrelation[aMatch]-min(myCorrelation[aMatch], na.rm = TRUE)
-	newCor<-(newCor/max(newCor, na.rm = TRUE))*ncolors
-	newCor<-round(newCor)
-	newCor[which(newCor == 0)]<-1
+	if(missing(maxValue))
+	{
+		aStart<-round(min(myCorrelation[aMatch], na.rm = TRUE), 1)
+		anEnd<-round(max(myCorrelation[aMatch], na.rm = TRUE), 1)
+		newCor<-myCorrelation[aMatch]-min(myCorrelation[aMatch], na.rm = TRUE)
+		newCor<-(newCor/max(newCor, na.rm = TRUE))*ncolors
+		newCor<-round(newCor)
+		newCor[which(newCor == 0)]<-1
+	}
+	else
+	{
+		if (missing(minValue))
+		{
+			return("needs a max and min values")
+		}
+		aStart<-minValue
+		anEnd<-maxValue
+		newCor<-myCorrelation[aMatch]-minValue
+		newCor<-(newCor/(maxValue-minValue))*ncolors
+		newCor<-round(newCor)
+		newCor[which(newCor == 0)]<-1
+	}
 	myColors<-colorRampPalette(c(firstColor, secondColor))(ncolors)
 	newColors<-myColors[newCor]
 	newColors[which(is.na(newColors) == TRUE)]<-"white"
@@ -114,14 +129,28 @@ PlotFly<-function(flyImageData, myNames, myCorrelation, firstColor = "yellow", s
 					col = colorsToPlot[i], border =  lineColors[i], lwd = flyImageData$lineWidth)
 		}	
 	}
-	text(flyImageData$textX, flyImageData$textY, flyImageData$textNames, pos =flyImageData$textPos, cex = textCex)
-	aMat<-matrix(c(seq(1:ncolors), seq(1:ncolors)), nrow = ncolors, ncol =2)
+	if(missing(textCex))
+	{
+		text(flyImageData$textX, flyImageData$textY, flyImageData$textNames, pos =flyImageData$textPos, cex = flyImageData$textCex)
+	}
+	else
+	{	
+		text(flyImageData$textX, flyImageData$textY, flyImageData$textNames, pos =flyImageData$textPos, cex =textCex)
+	}
+	aMat<-matrix(c(seq(1:100), seq(1:100)), nrow = 100, ncol =2)
 	aMin<-min(flyImageData$x)+(max(flyImageData$x)-min(flyImageData$x))/4
 	aMax<-max(flyImageData$x)-(max(flyImageData$x)-min(flyImageData$x))/4
-	x<-seq(aMin,aMax, (aMax-aMin)/ncolors)
+	x<-seq(aMin,aMax, (aMax-aMin)/100)
 	y<-c(85,  (max(flyImageData$y)/30)-6)
 	image(x, y, aMat, col = myColors, add = TRUE, useRaster = TRUE)
 	polygon(c(aMin, aMin, aMax, aMax), c(0,max(flyImageData$y)/24, max(flyImageData$y)/24, 0), border = "black")
-	axis(1,c(aMin, aMax), c(aStart,anEnd), lwd.ticks = 1, lwd = 0, line =-1, cex.axis = textCex, mgp = c(3,0.5,0))
+	if(missing(textCex))
+	{
+		axis(1,c(aMin, aMax), c(aStart,anEnd), lwd.ticks = 1, lwd = 0, line =-1, cex = flyImageData$textCex[1], tick = tickStyle)
+	}
+	else
+	{
+		axis(1,c(aMin, aMax), c(aStart,anEnd), lwd.ticks = 1, lwd = 0, line =-1, cex = textCex, tick = tickStyle)	
+	}
 }
 
